@@ -112,7 +112,7 @@ export default function Home() {
                     <Box><Button type="submit" size={{base: "sm", md: "md", lg: "lg"}} variant="surface">Search Videos</Button></Box>
                     <Box><Button
                         size={{base: "sm", md: "md", lg: "lg"}}
-                        as="a" href="/create"
+                        as={Link} href="/create"
                         bg="var(--button-background-color)" color="var(--foreground)"
 
                         borderWidth="1px"
@@ -131,7 +131,7 @@ export default function Home() {
                         }}
 
                         borderColor="var(--chakra-colors-border)"
-                    >Publish Video <BsUpload /></Button> <a href="/create">Publish Video</a> </Box>
+                    >Publish Video <BsUpload /></Button> <Link href="/create/abc-123">Publish Video</Link> </Box>
                   </Box>
                 </Box>
               </Box>

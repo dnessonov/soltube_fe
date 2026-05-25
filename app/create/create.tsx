@@ -44,7 +44,8 @@ import {useColorModeValue, ColorModeButton} from "../../components/ui/color-mode
 import {useEffect, useState} from "react";
 import Undici from "undici-types";
 import File = Undici.File;
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
 
@@ -104,7 +105,8 @@ export default function Home() {
     console.log("Upload triggered!", files);
   }
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
+  const nextRouter = useRouter();
 
 
   const handleFileSelect = async (acceptedFiles: File[]) => {
@@ -136,7 +138,8 @@ export default function Home() {
       }).then((axiosResponse) => {
         if(axiosResponse.data.status === "success"){
           const not_processed_video_id = axiosResponse.data.not_processed_video;
-          navigate(`/create/${not_processed_video_id}`);
+          nextRouter.push(`/create/${not_processed_video_id}`);
+          // console.log('Navigating to:', `/create/${not_processed_video_id}`);
         }
         console.log('axiosResponse:', axiosResponse);
       });

@@ -1,6 +1,7 @@
 "use client";
 
-import { Router as Router, Routes, Route, useParams } from "react-router-dom";
+import { usePathname } from 'next/navigation';
+import { MemoryRouter, Routes, Route, useParams } from "react-router-dom";
 import Home from "@/app/create/create";
 
 
@@ -25,14 +26,17 @@ function Path404(){
 }
 
 export default function SPage1Watch(params : {slug: string[]}) {
+    const pathname = usePathname();
+    const initialPath = pathname.replace(/^\/create/, '') || '/';
+
     return (
-        <Router basename="/create">
+        <MemoryRouter key={initialPath} initialEntries={[initialPath]}>
             <Routes>
                 <Route path="/:NotConvertedVideoId" element={<VariantTwo />} />
                 <Route path="/" element={<Home />} />
 
                 <Route path="*" element={<Path404 />} />
             </Routes>
-        </Router>
+        </MemoryRouter>
     );
 }
