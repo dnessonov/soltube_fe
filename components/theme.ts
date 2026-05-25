@@ -222,7 +222,8 @@ const theme :SystemConfig = defineConfig({
                         color: "var(--foreground)",
                         _hover: {
                             bg: "var(--background)",
-                        }
+                        },
+                        height: "320px"
                     },
 
                     itemName: {

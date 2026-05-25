@@ -31,8 +31,13 @@ import {
     SolanaProvider,
     useBalance,
     useWalletConnection,
+    useWallet,
 } from "@solana/react-hooks";
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 import {LuChevronDown} from "react-icons/lu";
+import { address } from "@solana/addresses";
+import { getUtf8Encoder } from '@solana/codecs-strings';
+import axios, {AxiosProgressEvent} from "axios";
 
 const MEDIA = '(prefers-color-scheme: dark)'
 
@@ -171,6 +176,73 @@ function LeftPane(){
     const menuItemDisplay = {base: 'none',topNavBreak: 'flex'};
     const menuHamburgerDisplay = {base: 'flex', topNavBreak: 'none'};
 
+    const { connectors, connect, disconnect, wallet, status, currentConnector } =
+        useWalletConnection();
+
+    const testSignTransaction = async () => {
+        console.log("Top Sticky Click. wallet is: ", wallet?.account.publicKey);
+
+        //const pubKey1 = new PublicKey(wallet?.account.publicKey ? wallet?.account.publicKey : 0);
+        //const programId = new PublicKey("FviQDovpzu6wRh9xeZESmVbMkNH6f6Tpn8QbAkLGw1um");
+
+
+
+        const pubKey1 = new PublicKey("CCfU4Emc7kDt76XXHcs66CJxFuy8GQPQVC6pXyFAjnrm");
+        const programId = new PublicKey("FviQDovpzu6wRh9xeZESmVbMkNH6f6Tpn8QbAkLGw1um");
+        const data = Buffer.alloc(14,2);
+
+        const keys = [
+            {pubkey: pubKey1, isSigner: true, isWritable: false},
+        ]
+        // const ix = new TransactionInstruction({keys, programId , data});
+        const ix = {
+            data: getUtf8Encoder().encode("Hello, world"),
+            programAddress: address("FviQDovpzu6wRh9xeZESmVbMkNH6f6Tpn8QbAkLGw1um"),
+            feePayer: wallet?.account.address
+        };
+
+        console.log("ix", ix);
+
+        const preparedTransaction = await client.helpers.transaction.prepare({
+            authority: wallet, // Uses the logged-in session wallet
+            instructions: [
+                // Your array of target program instructions here
+                ix
+            ],
+            feePayer: wallet?.account.address
+        });
+
+        console.log("ix2", preparedTransaction);
+
+        // const signedTransaction = await client.helpers.transaction.sign(preparedTransaction);
+        // console.log(signedTransaction);
+
+        const rawWireBytes = await client.helpers.transaction.toWire(preparedTransaction);
+        console.log("yomama1", preparedTransaction);
+
+/*
+        const base64TransactionString = btoa(
+            String.fromCharCode(... new Uint8Array(rawWireBytes))
+        );
+*/
+        const base64TransactionString = rawWireBytes;
+
+
+        const controller = new AbortController();
+
+        const formData = new FormData();
+        formData.append('signedTransaction', base64TransactionString);
+
+        axios.post('http://localhost:3000/signin', formData, {
+            signal: controller.signal,
+            onUploadProgress: (progress: AxiosProgressEvent) => {
+                console.log("Signin request progress ", progress);
+            }
+        }).then(response => {})
+
+
+    }
+
 
     return (
         <HStack
@@ -194,6 +266,9 @@ function LeftPane(){
             </Box>
             <Box paddingRight={boxLinkPaddingRight} display={menuItemDisplay}>
                 <LeftPaneLink href="#">PodCasts</LeftPaneLink>
+            </Box>
+            <Box paddingRight={boxLinkPaddingRight} display={menuItemDisplay}>
+                <Button onClick={() => {testSignTransaction();}}>Sign transaction</Button>
             </Box>
             <Box display={menuItemDisplay}>
                 <LeftPaneLink href="#">Dev Resources</LeftPaneLink>
