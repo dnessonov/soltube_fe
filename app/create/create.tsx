@@ -26,6 +26,8 @@ import {
   Progress
 } from "@chakra-ui/react";
 
+import Layout1 from '@/components/my/layout1';
+
 import axios, {AxiosProgressEvent} from 'axios';
 
 
@@ -49,53 +51,6 @@ import { useRouter } from 'next/navigation';
 
 export default function Home() {
 
-  const { resolvedTheme, setTheme, forcedTheme } = useTheme();
-  const imageSrc = useColorModeValue("/logo_light1.svg","/logo_dark1.svg");
-  const [mounted,setMounted] = useState(false);
-
-
-
-  const handleMediaQuery = React.useCallback(
-      (e: MediaQueryListEvent | MediaQueryList) => {
-        const resolved = getSystemTheme(e)
-        setTheme(resolved)
-      },
-      [resolvedTheme, forcedTheme]
-  )
-
-  const getSystemTheme = (e?: MediaQueryList | MediaQueryListEvent) => {
-    if (!e) e = window.matchMedia(MEDIA)
-    const isDark = e.matches
-    const systemTheme = isDark ? 'dark' : 'light'
-    return systemTheme
-  }
-
-  useEffect(() => {
-    setMounted(true);
-
-    const e = window.matchMedia(MEDIA)
-    const isDark = e.matches
-    const systemTheme = isDark ? 'dark' : 'light'
-
-    setTheme(systemTheme)
-
-
-    e.addListener(handleMediaQuery)
-    handleMediaQuery(e)
-
-    return () => e.removeListener(handleMediaQuery)
-  }, [mounted]);
-
-  if(mounted) {
-    // console.log("page has mounted.");
-    // imageSrc = useColorModeValue("/logo_light1.svg","/logo_dark1.svg");
-  }
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault(); // Prevents the page from refreshing
-    console.log("Search triggered!");
-  }
-
   // axios uploading
   const [files, setFiles] = useState<File[]>([]);
   const [uploadController, setUploadController] = useState<AbortController | null>(null);
@@ -105,9 +60,7 @@ export default function Home() {
     console.log("Upload triggered!", files);
   }
 
-  // const navigate = useNavigate();
   const nextRouter = useRouter();
-
 
   const handleFileSelect = async (acceptedFiles: File[]) => {
 
@@ -139,7 +92,6 @@ export default function Home() {
         if(axiosResponse.data.status === "success"){
           const not_processed_video_id = axiosResponse.data.not_processed_video;
           nextRouter.push(`/create/${not_processed_video_id}`);
-          // console.log('Navigating to:', `/create/${not_processed_video_id}`);
         }
         console.log('axiosResponse:', axiosResponse);
       });
@@ -171,22 +123,8 @@ export default function Home() {
 
 
   return (
-      <Flex direction="column" minH="100vh" w="full">
-        {/* Header */}
-
-        <TopStickyPanel />
-
-        <Box
-            as="main"
-            w="100%"
-            py={4}
-            px={6}
-            textAlign="center"
-            flex="1"
-        >
-
+      <Layout1>
           <Heading size="homePageSlogan">Publish Video <sup>On-Chain</sup></Heading>
-
 
           <VStack gap="4">
               <Box display="flex" flexDirection="column" mx="auto" gap="3">
@@ -261,31 +199,11 @@ export default function Home() {
                 </FileUpload.Root>
 
               </Box>
+              <Box style={{fontSize: '13px'}}>
+                By uploading you agree to Terms of Service.
+              </Box>
           </VStack>
 
-        </Box>
-
-        <Box as="footer" p="4" layerStyle="footerBarBox1">
-          <Container maxW="container.xl">
-
-            <HStack
-                gap="4"             // Spacing between links and separators
-                px="6"              // Horizontal padding for the entire group
-                separator={<Separator orientation="vertical" height="4" colorPalette="cyan" color="#ff0000" />}
-                justify="center"
-                wrap="wrap"
-            >
-              <Text>© 2026 SolTube</Text>
-              {mounted ? <ColorModeButton /> : <>...</> }
-              <Link href="#">About</Link>
-              <Link href="#">Terms</Link>
-              <Link href="#">Tokenomics</Link>
-              <Link href="#">Contact</Link>
-
-            </HStack>
-
-          </Container>
-        </Box>
-      </Flex>
+        </Layout1>
   );
 }
