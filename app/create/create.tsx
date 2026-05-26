@@ -29,24 +29,12 @@ import {
 import Layout1 from '@/components/my/layout1';
 
 import axios, {AxiosProgressEvent} from 'axios';
-
-
-import { useTheme } from "next-themes"
 import * as React from 'react';
 
-import TopStickyPanel from "@/components/my/topstickybar";
-
-const MEDIA = '(prefers-color-scheme: dark)'
-
-import {LuSearch, LuUpload} from "react-icons/lu";
-import {BsUpload} from "react-icons/bs";
-import {GrStorage} from "react-icons/gr";
-
-import {useColorModeValue, ColorModeButton} from "../../components/ui/color-mode";
-import {useEffect, useState} from "react";
+import {LuUpload} from "react-icons/lu";
+import {useState} from "react";
 import Undici from "undici-types";
 import File = Undici.File;
-// import { useNavigate } from 'react-router-dom';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {

@@ -3,15 +3,13 @@
 import { usePathname } from 'next/navigation';
 import { MemoryRouter, Routes, Route, useParams } from "react-router-dom";
 import Home from "@/app/create/create";
-
+import Step1Home from "@/app/create/step1";
 
 function VariantTwo(){
-
     const { NotConvertedVideoId } = useParams();
 
-    return (<>
-            <h1>Hello from new video config! {NotConvertedVideoId}</h1>
-        </>
+    return (
+        <Step1Home pathVideoId={NotConvertedVideoId} />
     );
 }
 
