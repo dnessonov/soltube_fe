@@ -1,4 +1,4 @@
-import { stepsAnatomy, fileUploadAnatomy } from "@chakra-ui/react/anatomy"
+import { stepsAnatomy, fileUploadAnatomy, fieldsetAnatomy, fieldAnatomy, radioCardAnatomy } from "@chakra-ui/react/anatomy"
 import {defineConfig, defineSemanticTokens, type SystemConfig} from "@chakra-ui/react";
 
 const semanticColors = defineSemanticTokens.colors({
@@ -238,7 +238,95 @@ const theme :SystemConfig = defineConfig({
                         color: "color-mix(in srgb, var(--foreground), transparent 42%)",
                     }
                 }
+            },
+
+            fieldset: {
+                className: "chakra-fieldset",
+                slots: fieldsetAnatomy.keys(),
+                base: {
+                    legend: {
+                        textAlign: "left",
+                        alignSelf: "flex-start",
+                        fontWeight: "semibold",
+                        color: "color-mix(in srgb, var(--foreground), transparent 3%)",
+                        fontFamily: "Work Sans Medium",
+                        //fontFamily: "Work Sans SemiBold",
+                        fontSize: "25px",
+                    },
+
+                    helperText: {
+                        textAlign: "left",
+                        alignSelf: "flex-start",
+                        fontFamily: "Work Sans Regular",
+                        color: "color-mix(in srgb, var(--foreground), transparent 0%)",
+                        fontWeight: "normal",
+                        fontSize: "17px",
+                    },
+
+                    content: {
+                        paddingBottom: "15px"
+                    }
+                }
+            },
+
+            field: {
+                className: "chakra-field",
+                slots: fieldAnatomy.keys(),
+                base: {
+                    label: {
+                        paddingTop: "10px",
+                        mt: 4,
+                        fontFamily: "Work Sans Regular",
+                        color: "color-mix(in srgb, var(--foreground), transparent 3%)",
+                    },
+                    helperText: {
+                        fontFamily: "Work Sans Regular",
+                        color: "color-mix(in srgb, var(--foreground), transparent 34%)",
+                    }
+                }
+            },
+
+            radioCard: {
+                className: "chakra-radioCard",
+                slots: radioCardAnatomy.keys(),
+                base: {
+                    item: {
+                        _checked: {
+                            // borderColor: "purple.600" /*"color-mix(in srgb, var(--foreground), transparent 35%)"*/,
+                            // borderWidth: "10px"
+                            // backgroundColor: "#ff0",
+                            boxShadow: "none !important",
+                            // borderColor: "color-mix(in srgb, var(--foreground), transparent 2%) !important",
+                            //borderColor: "green.600 !important",
+                            //borderWidth: "3px !important",
+                            //borderStyle: "solid",
+                        },
+                        _active:{
+                            borderColor: "blue.600"
+                        },
+                        _focus: {
+                            borderColor: "green.600",
+                            // backgroundColor: "#f00"
+                            backgroundColor: "color-mix(in srgb, var(--foreground), transparent 99%)"
+                        },
+                        borderColor: "color-mix(in srgb, var(--foreground), transparent 74%)",
+
+                        "& > div[data-state='checked']": {
+                            boxShadow: "none !important",
+
+                            // Force your custom border configurations with highest priority
+/*                            borderWidth: "3px !important",
+                            borderStyle: "solid !important",
+                            borderColor: "color-mix(in srgb, var(--foreground), transparent 2%) !important",*/
+
+                            // Wipe internal layout variable overrides if present
+                            "--radio-card-box-shadow": "none !important",
+                        }
+                    }
+
+                }
             }
+
         }
     }
 });

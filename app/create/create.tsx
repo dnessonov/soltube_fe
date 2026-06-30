@@ -63,7 +63,7 @@ export default function Home() {
     setUploadProgress(0);
 
     try {
-      const response = await axios.post('http://localhost:3000/upload', formData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/upload`, formData, {
         signal: controller.signal,
         headers: {
           'Authorization': 'Bearer AuthToken_prrremium_can_upload' // TODO: replace with signed string from
@@ -107,7 +107,6 @@ export default function Home() {
     fileUpload.clearFiles();
     setFiles([]);
   }
-
 
 
   return (

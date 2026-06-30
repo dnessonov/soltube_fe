@@ -95,7 +95,11 @@ export default function TopStickyPanel(){
 
                  borderBottomWidth="1px"
                  borderBottomColor={useColorModeValue("border.disabled","#343434")}
-
+                // style={{backgroundColor: "#f00"}}
+                  backgroundGradient="to-b"
+                  backgroundImage="linear-gradient(to bottom, var(--background) 0%, color-mix(in srgb, var(--background), transparent 17%) 100%)"
+                 // bgImage="linear-gradient(to bottom, var(--background) 0%, color-mix(in srgb, var(--background), transparent 33%) 100%"
+                  // bgImage='linear-gradient(to bottom, "#ff0000" 0%, color-mix(in srgb, "#ff0000", transparent 33%) 100%'
             >
                 <Flex w="full" justify="space-between">
                     <Box textAlign="left" minW="0">

@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
 @font-face {
+  font-family: "Work Sans Regular";
+  src: url("/fonts/Work_Sans/static/WorkSans-Regular.ttf");
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Work Sans Light";
   src: url("/fonts/Work_Sans/static/WorkSans-Light.ttf");
   font-display: swap;
@@ -11,6 +17,13 @@
   src: url("/fonts/Work_Sans/static/WorkSans-Medium.ttf");
   font-display: swap;
 }
+
+@font-face {
+  font-family: "Work Sans SemiBold";
+  src: url("/fonts/Work_Sans/static/WorkSans-SemiBold.ttf");
+  font-display: swap;
+}
+
 
 
 :root {
@@ -39,6 +52,9 @@
   --footer-separator-color: #262626;
   --steps-title-color: #f0f0f0;
   --steps-description-color: #908090;
+  --chakra-colors-color-palette-solid: var(--foreground);
+  --chakra-colors-color-palette-contrast: var(--background);
+  --chakra-colors-fg-muted: #969696;
 }
 
 @theme inline {
