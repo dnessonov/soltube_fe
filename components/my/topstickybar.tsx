@@ -26,13 +26,12 @@ import {
 import { HamburgerIcon } from "@chakra-ui/icons";
 import Link from 'next/link'
 
-import { autoDiscover, createClient } from "@solana/client";
 import {
-    SolanaProvider,
     useBalance,
     useWalletConnection,
-    useWallet,
 } from "@solana/react-hooks";
+import { solanaClient as client } from "@/components/ui/provider";
+
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 import {LuChevronDown} from "react-icons/lu";
 import { address } from "@solana/addresses";
@@ -40,11 +39,6 @@ import { getUtf8Encoder } from '@solana/codecs-strings';
 import axios, {AxiosProgressEvent} from "axios";
 
 const MEDIA = '(prefers-color-scheme: dark)'
-
-const client = createClient({
-    endpoint: "https://api.devnet.solana.com",
-    walletConnectors: autoDiscover(),
-});
 
 export default function TopStickyPanel(){
     const { resolvedTheme, setTheme, forcedTheme } = useTheme();
@@ -83,34 +77,32 @@ export default function TopStickyPanel(){
     }, [mounted]);
 
     return (
-        <SolanaProvider client={client}>
-            <Box
-                  as="nav"
-                  pos="sticky"
-                  top="0"
-                  zIndex="sticky"
-                 // borderWidth="1px" borderColor="border.disabled"
-                 w="100%"
-                 // style={{paddingTop: "5px", paddingBottom: "5px"}}
+        <Box
+              as="nav"
+              pos="sticky"
+              top="0"
+              zIndex="sticky"
+             // borderWidth="1px" borderColor="border.disabled"
+             w="100%"
+             // style={{paddingTop: "5px", paddingBottom: "5px"}}
 
-                 borderBottomWidth="1px"
-                 borderBottomColor={useColorModeValue("border.disabled","#343434")}
-                // style={{backgroundColor: "#f00"}}
-                  backgroundGradient="to-b"
-                  backgroundImage="linear-gradient(to bottom, var(--background) 0%, color-mix(in srgb, var(--background), transparent 17%) 100%)"
-                 // bgImage="linear-gradient(to bottom, var(--background) 0%, color-mix(in srgb, var(--background), transparent 33%) 100%"
-                  // bgImage='linear-gradient(to bottom, "#ff0000" 0%, color-mix(in srgb, "#ff0000", transparent 33%) 100%'
-            >
-                <Flex w="full" justify="space-between">
-                    <Box textAlign="left" minW="0">
-                        <Text as="div"><LeftPane /></Text>
-                    </Box>
-                    <Box textAlign="right" minW="0">
-                        <Text as="div"><RightPane /></Text>
-                    </Box>
-                </Flex>
-            </Box>
-        </SolanaProvider>
+             borderBottomWidth="1px"
+             borderBottomColor={useColorModeValue("border.disabled","#343434")}
+            // style={{backgroundColor: "#f00"}}
+              backgroundGradient="to-b"
+              backgroundImage="linear-gradient(to bottom, var(--background) 0%, color-mix(in srgb, var(--background), transparent 17%) 100%)"
+             // bgImage="linear-gradient(to bottom, var(--background) 0%, color-mix(in srgb, var(--background), transparent 33%) 100%"
+              // bgImage='linear-gradient(to bottom, "#ff0000" 0%, color-mix(in srgb, "#ff0000", transparent 33%) 100%'
+        >
+            <Flex w="full" justify="space-between">
+                <Box textAlign="left" minW="0">
+                    <Text as="div"><LeftPane /></Text>
+                </Box>
+                <Box textAlign="right" minW="0">
+                    <Text as="div"><RightPane /></Text>
+                </Box>
+            </Flex>
+        </Box>
     )
 }
 
@@ -230,7 +222,6 @@ function LeftPane(){
         );
 */
         const base64TransactionString = rawWireBytes;
-
 
         const controller = new AbortController();
 

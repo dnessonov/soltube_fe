@@ -12,13 +12,23 @@ import {
     Box,
     HStack, Icon, RadioCard,
     ProgressCircle, Spinner,
-    Alert
+    Alert,
+    Image, Skeleton,
+    Select, Portal, createListCollection,
+    Collapsible
 } from "@chakra-ui/react";
+import { Tooltip } from "@/components/ui/tooltip"
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
+
 import {LuArrowRight, LuScanEye} from "react-icons/lu";
 import {useState} from "react";
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import * as WsEvents from 'reconnecting-websocket/events';
+import {VolumeX, VideoOff} from "lucide-react";
 
+
+dayjs.extend(duration);
 
 interface MyWrapperProps {
     // children: React.ReactNode; // ReactNode is the standard type for anything React can render
@@ -42,9 +52,13 @@ export default function Home({ pathVideoId } : MyWrapperProps) {
             const data = JSON.parse(event.data);
             console.log ('reçu un message:', data);
             if(data.duration !== undefined){
-                if(stateRef.current === undefined){
-                    setUnProcessedVideoState(data);
-                }
+                //if(stateRef.current === undefined){
+                setUnProcessedVideoState(data);
+                console.log("updating to ", data);
+                //}
+            }else if(data?.event === "thumbnail-taken"){
+                const newState = {... stateRef.current, thumbnail: data?.videoThumbResult?.path};
+                setUnProcessedVideoState(newState);
             }
         } catch (err) {
             console.error("Failed to parse WS message", err);
@@ -99,7 +113,7 @@ export default function Home({ pathVideoId } : MyWrapperProps) {
                     unProcessedVideoState === null ? (
                        <>404 yomama</>
                     ) : (
-                        <StepOneUi />
+                        <StepOneUi unProcessedVideoState={unProcessedVideoState} />
                     )
                 )}
             </Box>
@@ -107,9 +121,26 @@ export default function Home({ pathVideoId } : MyWrapperProps) {
     )
 }
 
-function StepOneUi() {
+function StepOneUi( props: any ) {
+
+    const resolutions = createListCollection({
+        items: [
+            { label: "360p", value: "react" },
+            { label: "720p", value: "vue" },
+            { label: "1080p", value: "angular" },
+        ],
+    });
+
+    const audioVariants = createListCollection({
+        items: [
+            { label: "mono (44kHz)", value: "1" },
+            { label: "stereo (44kHz)", value: "2" },
+        ],
+    })
+
+
     return (
-        <Fieldset.Root size="2xl" maxW="md" style={{borderWidth: "1px", borderColor: "#cecece", borderRadius: "10px", padding: "43px"}}>
+        <Fieldset.Root size="sm" maxW="md" style={{borderWidth: "1px", borderColor: "#cecece", borderRadius: "10px", padding: "43px"}}>
 
             <Stack style={{paddingBottom: "23px"}}>
                 <Alert.Root status="info">
@@ -124,6 +155,47 @@ function StepOneUi() {
                             </ProgressCircle.Circle>
                         </ProgressCircle.Root>*/}
 
+            </Stack>
+
+            <Stack>
+                <Fieldset.Content>
+                    <HStack gap="2" alignItems="center">
+                        {props?.unProcessedVideoState?.thumbnail ? (
+                            <>
+                                <Image src={`/video-thumb/${props?.unProcessedVideoState?.thumbnail}`} width="50%" objectFit="contain" />
+                            </>
+                        ) : (
+                            <Skeleton width="50%" height="127px" borderRadius="6px" />
+                        )}
+
+                        <Fieldset.HelperText>
+                            <HStack gap="1.5">
+                                <Tooltip content="This video has no sound" showArrow positioning={{ placement: "top" }}>
+                                    <Box display="inline-block" cursor="help">
+                                        <Icon color="red.500" size="md"><VolumeX /></Icon>
+                                    </Box>
+                                </Tooltip>
+                                <Tooltip content="Audio only" showArrow positioning={{ placement: "top" }}>
+                                    <Box display="inline-block" cursor="help">
+                                        <Icon color="red.500" size="md"><VideoOff /></Icon>
+                                    </Box>
+                                </Tooltip>
+                            </HStack>
+                            <Box>
+                                <strong>Duration: </strong>
+                                {props?.unProcessedVideoState?.duration === undefined ?
+                                  <>
+                                    N/A
+                                  </>
+                                : (() => {
+                                    const totalSeconds = Number(props?.unProcessedVideoState?.duration) / 1000;
+                                    const formatPattern = totalSeconds >= 3600 ? 'HH:mm:ss' : 'mm:ss';
+
+                                    return dayjs.duration(props?.unProcessedVideoState?.duration / 1000, 'seconds').format(formatPattern);
+                                })()}
+                            </Box>
+                        </Fieldset.HelperText></HStack>
+                </Fieldset.Content>
             </Stack>
 
             <Stack>
@@ -145,46 +217,77 @@ function StepOneUi() {
                     <Textarea name="description" />
                     <Field.HelperText>Max 300 characters.</Field.HelperText>
                 </Field.Root>
-
-                <Field.Root style={{paddingTop: "23px"}} required>
-                    <RadioCard.Root defaultValue="public">
-                        <RadioCard.Label>Visibility &amp; permissions</RadioCard.Label>
-                        <HStack align="stretch">
-                            <RadioCard.Item key="public" value="public">
-                                <RadioCard.ItemHiddenInput />
-                                <RadioCard.ItemControl>
-                                    <RadioCard.ItemContent>
-                                        <Icon size="xl" color="fg.muted" mb="2">
-                                            <LuArrowRight />
-                                        </Icon>
-                                        <RadioCard.ItemText>Public</RadioCard.ItemText>
-                                        <RadioCard.ItemDescription>Video will be available to all by link</RadioCard.ItemDescription>
-                                    </RadioCard.ItemContent>
-                                    <RadioCard.ItemIndicator />
-                                </RadioCard.ItemControl>
-                            </RadioCard.Item>
-                            <RadioCard.Item key="private" value="private">
-                                <RadioCard.ItemHiddenInput />
-                                <RadioCard.ItemControl>
-                                    <RadioCard.ItemContent>
-                                        <Icon size="xl" color="fg.muted" mb="2">
-                                            <LuScanEye />
-                                        </Icon>
-                                        <RadioCard.ItemText>Private</RadioCard.ItemText>
-                                        <RadioCard.ItemDescription>Video will be available to specific Solana addresses only</RadioCard.ItemDescription>
-                                    </RadioCard.ItemContent>
-                                    <RadioCard.ItemIndicator />
-                                </RadioCard.ItemControl>
-                            </RadioCard.Item>
-                        </HStack>
-                    </RadioCard.Root>
-                </Field.Root>
-
             </Fieldset.Content>
 
+            <Collapsible.Root>
+                <Collapsible.Trigger display="inline-flex" background="transparent" border="none" padding="0" color="blue.500" _hover={{ textDecoration: "underline", color: "blue.600"}} cursor="pointer">Advanced Settings</Collapsible.Trigger>
+                <Collapsible.Content>
+                    <Stack style={{paddingTop: "18px"}}>
+                        <Fieldset.Legend>Codec &amp; Technicals</Fieldset.Legend>
+                        <Fieldset.HelperText>
+                            You can leave the default settings or choose different ones to optimize the video for online streaming.
+                        </Fieldset.HelperText>
+                    </Stack>
 
-            <Button type="submit" alignSelf="flex-start">Submit</Button>
+                    <Fieldset.Content>
+                        <Field.Root required>
+                            <Field.Label>Resolution <Field.RequiredIndicator /></Field.Label>
+                            <Select.Root collection={resolutions} size="sm" width="320px">
+                                <Select.HiddenSelect />
+                                <Select.Control>
+                                    <Select.Trigger>
+                                        <Select.ValueText placeholder="Select resolution" />
+                                    </Select.Trigger>
+                                    <Select.IndicatorGroup>
+                                        <Select.Indicator />
+                                    </Select.IndicatorGroup>
+                                </Select.Control>
+                                <Portal>
+                                    <Select.Positioner>
+                                        <Select.Content>
+                                            {resolutions.items.map((res) => (
+                                                <Select.Item item={res} key={res.value}>
+                                                    {res.label}
+                                                    <Select.ItemIndicator />
+                                                </Select.Item>
+                                            ))}
+                                        </Select.Content>
+                                    </Select.Positioner>
+                                </Portal>
+                            </Select.Root>
+                        </Field.Root>
 
+                        <Field.Root required>
+                            <Field.Label>Audio <Field.RequiredIndicator /></Field.Label>
+                            <Select.Root collection={audioVariants} size="sm" width="320px">
+                                <Select.HiddenSelect />
+                                <Select.Control>
+                                    <Select.Trigger>
+                                        <Select.ValueText placeholder="Select resolution" />
+                                    </Select.Trigger>
+                                    <Select.IndicatorGroup>
+                                        <Select.Indicator />
+                                    </Select.IndicatorGroup>
+                                </Select.Control>
+                                <Portal>
+                                    <Select.Positioner>
+                                        <Select.Content>
+                                            {audioVariants.items.map((audioVariant) => (
+                                                <Select.Item item={audioVariant} key={audioVariant.value}>
+                                                    {audioVariant.label}
+                                                    <Select.ItemIndicator />
+                                                </Select.Item>
+                                            ))}
+                                        </Select.Content>
+                                    </Select.Positioner>
+                                </Portal>
+                            </Select.Root>
+                        </Field.Root>
+                    </Fieldset.Content>
+                </Collapsible.Content>
+            </Collapsible.Root>
+
+            <Button type="submit" alignSelf="flex-center">Create Video Account</Button>
         </Fieldset.Root>
     )
 }

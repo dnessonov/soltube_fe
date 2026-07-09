@@ -38,6 +38,7 @@
   --footer-separator-color: #e9e9e9;
   --steps-title-color: #232323;
   --steps-description-color: #434343;
+  --chakra-colors-bg-panel: #232322;
 }
 
 [data-theme='dark'] {
@@ -55,6 +56,7 @@
   --chakra-colors-color-palette-solid: var(--foreground);
   --chakra-colors-color-palette-contrast: var(--background);
   --chakra-colors-fg-muted: #969696;
+  --chakra-colors-bg-panel: #232323;
 }
 
 @theme inline {

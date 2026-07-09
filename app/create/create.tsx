@@ -122,7 +122,6 @@ export default function Home() {
                     maxFiles={1}
                     onFileChange={(details) => {handleFileSelect(details.acceptedFiles);} }
                     accept={[".mp4", ".mkv", ".avi", ".mov", "video/*"]}
-                    value={fileUpload}
                 >
                   <FileUpload.HiddenInput />
                   { files?.length === 0 ? (
