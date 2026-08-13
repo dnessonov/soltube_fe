@@ -1,9 +1,9 @@
 "use client";
-import Image from "next/image";
 
 import { BrowserRouter as Router, Routes, Route, useParams } from "react-router-dom";
 import Home from "@/app/page";
 import { useEffect, useState } from "react";
+import WatchVideoPage from "@/app/watch/video";
 
 
 
@@ -16,21 +16,23 @@ function RootOne(){
 
 
 function VariantTwo(){
-
-    const { slugId } = useParams();
-
+    const {
+        slugId  // this is solana address that contains the video (hopefully, have to check further)
+    } = useParams();
     return (<>
-            <h1>Hello from two! {slugId}</h1>
+            <WatchVideoPage address={slugId} />
         </>
     );
 }
 
 function VariantTwoComments(){
 
-    const { slugId } = useParams();
+    const {
+        slugId  // this is solana address that contains the video (hopefully, have to check further)
+    } = useParams();
 
     return (<>
-            <h1>Hello from two! These are comments for {slugId}</h1>
+            <WatchVideoPage address={slugId} />
         </>
     );
 }

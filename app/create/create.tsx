@@ -185,8 +185,9 @@ export default function Home() {
                 </FileUpload.Root>
 
               </Box>
-              <Box style={{fontSize: '13px'}}>
-                By uploading you agree to Terms of Service.
+              <Box style={{fontSize: '13px', color: '#999'}}>
+                You cannot upload copyrighted material. Please make sure that uploading this video does not infringe any copyrights.<br />
+                By uploading you agree to <a href="#">Terms of Service</a>.<br />
               </Box>
           </VStack>
 
