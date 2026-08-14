@@ -10,6 +10,7 @@ import * as React from "react";
 import Hls from 'hls.js';
 
 import {solanaClient, solanaClient as client} from "@/components/ui/provider";
+import {readUint32} from "hls.js/src/utils/mp4-tools";
 
 interface WatchVideoPageProps {
     // children: React.ReactNode; // ReactNode is the standard type for anything React can render
@@ -50,7 +51,7 @@ export default function WatchVideoPage({address}: WatchVideoPageProps): JSX.Elem
 
 
             <Box>
-                <VideoPlayer2 src="http://localhost:3001/data/temp/output5.mp4" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>
+                <VideoPlayer2 src="http://localhost:3001/data/data/0d06f0645471063b73d14babbdb95822.mp4" moofIndexSrc="http://localhost:3001/data/data/0d06f0645471063b73d14babbdb95822.midx" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>
             </Box>
 
         </Layout1>
@@ -58,18 +59,20 @@ export default function WatchVideoPage({address}: WatchVideoPageProps): JSX.Elem
 }
 
 interface VideoPlayerProps {
-    src: string; // Your .m3u8 stream URL
+    src: string; // Your .fmp4
+    moofIndexSrc: string;
     duration: number;
     fileSize: number;
     mimeCodec: string;
 }
 
-export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSize, mimeCodec }) => {
+export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, duration, fileSize, mimeCodec }) => {
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const mediaSourceRef = React.useRef<MediaSource | null>(null);
     const sourceBufferRef = React.useRef<SourceBuffer | null>(null);
 
-    const sourceBufferMoofsRef = React.useRef<number[][] | null>([[0,1333],[40,647958],[63,959320],[92,1407296],[132,1975391],[156,2263568],[185,2724990],[225,3262232],[258,3735382],[287,4157310]]);
+    // const sourceBufferMoofsRef = React.useRef<number[][] | null>([[0,1333],[40,647958],[63,959320],[92,1407296],[132,1975391],[156,2263568],[185,2724990],[225,3262232],[258,3735382],[287,4157310]]);
+    const sourceBufferMoofsRef = React.useRef<number[][] | null>(null);
     const currentlyDownloadingMoofIndex = React.useRef<number | null | undefined>(undefined);
     const nextDownloadingMoofIndex = React.useRef<number | null>(null);
     const currentPositionTimeUnitsBeforeWorryAboutNextInterval = React.useRef<number | null | undefined>(undefined);
@@ -93,7 +96,7 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
 
         console.log("w1",mediaSource.readyState);
 
-        const onSourceOpen = () => {
+        const onSourceOpen = async () => {
              console.log('The mediaSource is open and ready to receive a sourceBuffer');
              // The mediaSource is open and ready to receive a sourceBuffer
 
@@ -104,7 +107,9 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
                  return;
              }
 
-            currentPositionTimeUnitsBeforeWorryAboutNextInterval.current = 16; // 3 seconds before next fragment will start loading
+             await fetchMoofIndex();
+
+             currentPositionTimeUnitsBeforeWorryAboutNextInterval.current = 16; // 8 seconds before next fragment will start loading
 
              mediaSource.duration = duration === undefined ? 0 : duration; // seconds
 
@@ -113,7 +118,7 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
              // bufferVideo.appendBuffer(buf);
 
              bufferVideo.addEventListener('updateend', () => {
-                 console.log("updateend CB CP initial");
+                 //console.log("updateend CB CP initial");
                  isAppendingRef.current = false;
                  if (isSeekingRef.current) {
                      isSeekingRef.current = false;
@@ -122,14 +127,6 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
                  if(nextDownloadingMoofIndex.current !== null){
                      fetchNextSequentialChunk(nextDownloadingMoofIndex.current);
                  }
-
-                 // fetchNextSequentialChunk();
-
-                 /*if(!bufferVideo.updating && mediaSource.readyState === "open") {
-                     mediaSource.endOfStream();
-
-                     videoElement.currentTime = 0;
-                 }*/
              });
              currentPositionTimeUnits.current = 0;
              addedMoofs.current.clear();
@@ -147,8 +144,26 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
     }, [src,duration,fileSize,mimeCodec]);
 
 
+    const fetchMoofIndex = async() => {
+        const response = await fetch(moofIndexSrc, {});
+        const buffer: Buffer<ArrayBuffer> = Buffer.from(await response.arrayBuffer());
+
+        if(sourceBufferMoofsRef.current === null){
+            sourceBufferMoofsRef.current = [];
+        }
+
+        let _offset = 0;
+        while(_offset < buffer.byteLength){
+            const _timeVal = buffer.readUInt32LE(_offset);
+            const _seekVal = buffer.readUInt32LE(_offset + 4);
+            _offset+=8;
+            sourceBufferMoofsRef.current.push([_timeVal, _seekVal]);
+        }
+    }
+
+
     const fetchNextSequentialChunk = async (moofIndex :number | null) => {
-        console.log("moofIndex passed: (CP1)", moofIndex);
+        // console.log("moofIndex passed: (CP1)", moofIndex);
         if(!sourceBufferRef.current || !mediaSourceRef.current) return;
 
         if(isAppendingRef.current) {
@@ -162,28 +177,23 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
 
         let start, end :number | undefined | null;
 
-        console.log("moofIndex passed: (CP2)", moofIndex);
-
         let _moofIndexTo :number;
         if(moofIndex === null) {
             start = 0;
             currentlyDownloadingMoofIndex.current = 0;
             _moofIndexTo = 1;
         }else{
-            console.log("moofIndex passed(CP3):", moofIndex);
+            // console.log("moofIndex passed(CP3):", moofIndex);
             while(addedMoofs.current.has(moofIndex)){
-                console.log("moofIndex passed(CP4):", moofIndex);
                 moofIndex++;
-                if((typeof currentPositionTimeUnitsBeforeWorryAboutNextInterval.current === 'number') && (typeof sourceBufferMoofsRef.current?.[moofIndex][0] === 'number') && (sourceBufferMoofsRef.current?.[moofIndex][0] <= ((currentPositionTimeUnits.current ?? 0) + currentPositionTimeUnitsBeforeWorryAboutNextInterval.current))){
-                    console.log("moofIndex passed(CP4.1):", moofIndex);
+                if((typeof currentPositionTimeUnitsBeforeWorryAboutNextInterval.current === 'number') && (sourceBufferMoofsRef.current?.[moofIndex] !== undefined) && (typeof sourceBufferMoofsRef.current?.[moofIndex][0] === 'number') && (sourceBufferMoofsRef.current?.[moofIndex][0] <= ((currentPositionTimeUnits.current ?? 0) + currentPositionTimeUnitsBeforeWorryAboutNextInterval.current))){
+                    //console.log("moofIndex passed(CP4.1):", moofIndex);
                 }else{
-                    //isAppendingRef.current = false;
-                    console.log("moofIndex passed(CP4.2):", moofIndex);
+                    //console.log("moofIndex passed(CP4.2):", moofIndex);
                     return;
                 }
                 if(moofIndex > ((sourceBufferMoofsRef.current?.length ?? 0) - 1)){
-                    console.log("moofIndex passed(CP4.3):", moofIndex);
-                    //isAppendingRef.current = false;
+                    //console.log("moofIndex passed(CP4.3):", moofIndex);
                     return; // data is already downloaded
                 }
             }
@@ -193,8 +203,7 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
 
         isAppendingRef.current = true;
         while(true) {
-            console.log("moofIndex passed(CP5.1):", moofIndex, _moofIndexTo);
-            end = (sourceBufferMoofsRef.current?.[_moofIndexTo][1] ?? 1) - 1;
+            end = (sourceBufferMoofsRef.current?.[_moofIndexTo] === undefined) ? undefined :  (sourceBufferMoofsRef.current?.[_moofIndexTo][1] ?? 1) - 1;
             if(end === undefined){
                 if(start === 0) { start = null; }
                 end = null; // query whole file without http bytes ranges header
@@ -209,9 +218,9 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
         }
 
 
-        console.log("fetchNextSequentialChunk start,end bytes ranges", start, end);
+        //console.log("fetchNextSequentialChunk start,end bytes ranges", start, end);
 
-        console.log("fetchNextSequentialChunk CP1");
+        //console.log("fetchNextSequentialChunk CP1");
 
 
         try {
@@ -224,13 +233,13 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
 
             // console.log("for loop:", moofIndex ?? 0, _moofIndexTo);
             for(let _i = moofIndex ?? 0; _i < (_moofIndexTo ?? ((sourceBufferMoofsRef.current?.length ?? 1) - 1) ) ; _i++){
-                console.log("addedMoofs push", _i);
+                //console.log("addedMoofs push", _i);
                 if(!addedMoofs.current.has(_i)){addedMoofs.current.add(_i);}
             }
             //currentByteRef.current += buffer.byteLength;
 
             sourceBufferRef.current.appendBuffer(buffer);
-            console.log("fetchNextSequentialChunk appendBuffer called ", /*currentByteRef.current,*/ buffer.byteLength);
+            //console.log("fetchNextSequentialChunk appendBuffer called ", /*currentByteRef.current,*/ buffer.byteLength);
         } catch (err) {
             console.error("Chunk retrieval failed:", err);
             isAppendingRef.current = false;
@@ -245,66 +254,26 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
 
         isSeekingRef.current = true;
 
-        //const tmp_time_marks = [[0,1334],[7,180459],[18,376553],[38,755594],[50,961489],[63,1152048],[83,1534823],[92,1714581],[108,1947269],[128,2325342],[136,2481406],[156,2734754],[176,3133210],[185,3316144],[203,3557945],[223,3921481],[234,4113065],[239,4189780],[258,4533861],[268,4674451],[276,4820795],[287,5031265]];
-        //const tmp_time_marks = [[0,1333],[7,148844],[18,314430],[38,623987],[50,792268],[63,958259],[83,1271204],[92,1417127],[108,1615528],[128,1922642],[136,2049701],[156,2272924],[176,2597101],[185,2744674],[203,2956899],[223,3254378],[234,3411466],[239,3477385],[258,3757339],[268,3880844],[276,4002156],[287,4179644]];
-        // const tmp_time_marks = [[0,1333],[40,647958],[63,959320],[92,1407296],[132,1975391],[156,2263568],[185,2724990],[225,3262232],[258,3735382],[287,4157310]];
-
-        // Linear ratio math formula: (T_seek / T_total) * Size_total
-        // console.log('seeking at ',video.currentTime);
 
         const time_marks_units_time = Math.floor(video.currentTime * 2);
         currentPositionTimeUnits.current = time_marks_units_time;
-        let safeSeekByte :number | undefined = undefined;
-        let safeSeekMoofIndex :number | null = null;
-        sourceBufferMoofsRef.current?.forEach( (val, val_index, val1) => {
-            if((safeSeekByte === undefined) && (val[0] > time_marks_units_time) && (val_index > 0)){
-                safeSeekByte = val1[val_index-1][1];
-                safeSeekMoofIndex = val_index-1;
+
+        let _atMoofIndex :number = 0;
+        for(let _i=0;_i < (sourceBufferMoofsRef.current?.length ?? 0); _i++ ){
+            if(currentPositionTimeUnits.current >= (sourceBufferMoofsRef.current?.[_i][0] ?? 0)){
+                _atMoofIndex = _i;
+            }else{
+                break;
             }
-        });
-        if(safeSeekByte === undefined){
-            safeSeekMoofIndex = (sourceBufferMoofsRef.current?.length ?? 0) -1;
-            safeSeekByte = (sourceBufferMoofsRef?.current?.[safeSeekMoofIndex]?.[1] ?? 0);
         }
 
-        console.log(`seeking at ${video.currentTime} (in units ${time_marks_units_time}) safeSeekByte is ${safeSeekByte}`);
-
-        // Keyframe cluster alignment correction (Grounding step to closest chunk boundary)
-        // const safeSeekByte = Math.floor(targetByteEstimate / CHUNK_SIZE) * CHUNK_SIZE;
-
-        console.log('onSeeking CP1: ', video?.currentTime, safeSeekByte, mediaSourceRef.current?.readyState);
-
-        // Direct byte pointer redirection bypasses linear queueing sequence
-        currentByteRef.current = safeSeekByte;
-
-        if(mediaSourceRef.current?.readyState === 'ended'){
-
+        if(!addedMoofs.current.has(_atMoofIndex)){
+            console.log(`seeking at ${video.currentTime} (in units ${time_marks_units_time}) loading chunk ${_atMoofIndex}`);
+            fetchNextSequentialChunk(_atMoofIndex);
         }else{
-            // Clear out browser multimedia engine buffers entirely
-            console.log("SourceBuffer to Abort CP0");
-            sb.abort();
-            console.log("SourceBuffer Aborted CP1");
-            if (sb.buffered.length > 0) {
-                console.log("SourceBuffer to remove 0, ", duration);
-                // sb.remove(0, duration);
-                console.log("SourceBuffer removed 0, ", duration);
-            }
-
-            //return;
-
-            console.log("Proceeding to hopefully fetching data at the seek position: ", safeSeekByte, mediaSourceRef.current?.readyState);
-            await fetchNextSequentialChunk(safeSeekMoofIndex);
-            return;
-
-            // Wait until buffer clearing ends before requesting the new chunk
-            /*const resumeLoading = async () => {
-                console.log("updateend CB CP1");
-                sb?.removeEventListener('updateend', resumeLoading);
-                isAppendingRef.current = false;
-                await fetchNextSequentialChunk();
-            };
-            sb?.addEventListener('updateend', resumeLoading);*/
+            console.log(`seeking at ${video.currentTime} (in units ${time_marks_units_time}) chunk ${_atMoofIndex} is already loaded.`);
         }
+        isSeekingRef.current = false;
     };
 
     const handleOnStalled = (event) => {
@@ -315,7 +284,7 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
         console.log("onSuspend", event);
     }
 
-    const handleTimeUpdate = (event) => {
+    const handleTimeUpdate = () => {
         currentPositionTimeUnits.current = (videoRef.current?.currentTime ?? 0) * 2;
 
         let _atMoofIndex :number | null = null;
@@ -327,21 +296,25 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, duration, fileSi
             }
         }
 
-        if ( ((_atMoofIndex ?? 0) < ((sourceBufferMoofsRef.current?.length ?? 0) - 1))
-            && ( (currentPositionTimeUnits.current ?? 0) + ( currentPositionTimeUnitsBeforeWorryAboutNextInterval.current ?? 2) >
-                  (sourceBufferMoofsRef.current?.[(_atMoofIndex ?? 0)+1][0] ?? 0) ) ) {
+        if ( (typeof _atMoofIndex === 'number')
+            && (typeof sourceBufferMoofsRef.current?.length === 'number')
+            && (typeof currentPositionTimeUnits.current === 'number')
+            && (_atMoofIndex < (sourceBufferMoofsRef.current?.length - 1))
+            && (sourceBufferMoofsRef.current?.[_atMoofIndex+1] !== undefined)
+            && ( currentPositionTimeUnits.current + ( currentPositionTimeUnitsBeforeWorryAboutNextInterval.current ?? 2) >
+                  (sourceBufferMoofsRef.current?.[_atMoofIndex+1][0] ?? 0) ) ) {
 
             // console.log("About to fetch", _atMoofIndex+1);
             if(typeof _atMoofIndex === 'number'){
                 if(!isAppendingRef.current && !addedMoofs.current.has(_atMoofIndex + 1)) {
-                    console.log("About to fetch", _atMoofIndex+1);
+                    //console.log("About to fetch", _atMoofIndex+1);
                     fetchNextSequentialChunk(_atMoofIndex + 1);
                 }
             }
         }
 
 
-        console.log("onTimeUpdate", videoRef.current?.currentTime);
+        // console.log("onTimeUpdate", videoRef.current?.currentTime);
     }
 
     return (
