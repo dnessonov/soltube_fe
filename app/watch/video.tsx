@@ -51,7 +51,8 @@ export default function WatchVideoPage({address}: WatchVideoPageProps): JSX.Elem
 
 
             <Box>
-                <VideoPlayer2 src="http://localhost:3001/data/data/0d06f0645471063b73d14babbdb95822.mp4" moofIndexSrc="http://localhost:3001/data/data/0d06f0645471063b73d14babbdb95822.midx" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>
+                <VideoPlayer2 src="http://localhost:3001/data/data/3ac9815c6568a5778f2db4746de591b9.mkv" moofIndexSrc="http://localhost:3001/data/data/3ac9815c6568a5778f2db4746de591b9.midx" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>
+                {/*<VideoPlayer2 src="http://localhost:3001/data/data/acfe98a41029bec232c05b6360583f49.mp4" moofIndexSrc="http://localhost:3001/data/data/acfe98a41029bec232c05b6360583f49.midx" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>*/}
             </Box>
 
         </Layout1>
@@ -79,6 +80,15 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
     const currentPositionTimeUnits = React.useRef<number | null>(null);
     const addedMoofs = React.useRef<Set<number>>(new Set());
 
+    const sb_video_resolution_h = React.useRef<number|null>(null);
+    const sb_video_resolution_w = React.useRef<number|null>(null);
+    const sb_audio_sample_rate = React.useRef<number|null>(null);
+    const sb_audio_channels = React.useRef<number|null>(null);
+    const sb_bit_rate = React.useRef<number|null>(null);
+    const sb_video_stream_i = React.useRef<number|null>(null);
+    const sb_audio_stream_i = React.useRef<number|null>(null);
+    const sb_duration = React.useRef<number|null>(null);
+    const sb_codec_str = React.useRef<string|null>(null);
 
     const currentByteRef = React.useRef<number>(0);
     const isAppendingRef = React.useRef<boolean>(false);
@@ -100,18 +110,19 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
              console.log('The mediaSource is open and ready to receive a sourceBuffer');
              // The mediaSource is open and ready to receive a sourceBuffer
 
-             const mimeCodecStr = `video/mp4; codecs="${mimeCodec}"`;
+            await fetchMoofIndex();
+            const mimeCodecStr = `video/mp4; codecs="${sb_codec_str.current}"`;
 
              if (!MediaSource.isTypeSupported(mimeCodecStr)) {
                  console.error("The specified codec string is not supported by this browser.");
                  return;
              }
 
-             await fetchMoofIndex();
 
              currentPositionTimeUnitsBeforeWorryAboutNextInterval.current = 16; // 8 seconds before next fragment will start loading
 
-             mediaSource.duration = duration === undefined ? 0 : duration; // seconds
+             // mediaSource.duration = duration === undefined ? 0 : duration; // seconds
+             mediaSource.duration = sb_duration.current === null ? duration : sb_duration.current / 1000;
 
              const bufferVideo = mediaSource.addSourceBuffer(mimeCodecStr);
              sourceBufferRef.current = bufferVideo;
@@ -153,6 +164,24 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
         }
 
         let _offset = 0;
+
+        sb_bit_rate.current = buffer.readUInt32LE(_offset);
+        sb_video_stream_i.current = buffer.readUInt8(_offset+4);
+        sb_audio_stream_i.current = buffer.readUInt8(_offset+5);
+        sb_audio_channels.current = buffer.readUInt8(_offset+6);
+        sb_audio_sample_rate.current = buffer.readUInt32LE(_offset+7);
+        sb_video_resolution_h.current = buffer.readUInt16LE(_offset+11);
+        sb_video_resolution_w.current = buffer.readUInt16LE(_offset+13);
+        sb_duration.current = buffer.readUInt32LE(_offset+15);
+
+        const codec_str_len = buffer.readUInt8(_offset+19);
+        sb_codec_str.current = "";
+        if(codec_str_len > 0){
+            sb_codec_str.current += buffer.toString('ascii', 20, 20+codec_str_len);
+        }
+
+        _offset +=20 + codec_str_len;
+
         while(_offset < buffer.byteLength){
             const _timeVal = buffer.readUInt32LE(_offset);
             const _seekVal = buffer.readUInt32LE(_offset + 4);
@@ -276,12 +305,12 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
         isSeekingRef.current = false;
     };
 
-    const handleOnStalled = (event) => {
-        console.log("onStalled", event);
+    const handleOnStalled = () => {
+        console.log("onStalled");
     }
 
-    const handleOnSuspend = (event) => {
-        console.log("onSuspend", event);
+    const handleOnSuspend = () => {
+        console.log("onSuspend");
     }
 
     const handleTimeUpdate = () => {
@@ -317,6 +346,14 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
         // console.log("onTimeUpdate", videoRef.current?.currentTime);
     }
 
+
+    const handleTestBtnClick = async() => {
+        const result1 = await fetch('https://raw.githubusercontent.com/dnessonov/soltube/refs/heads/main/LICENSE');
+        const result2 = await result1.arrayBuffer();
+
+        console.log('test download', result2.byteLength);
+    }
+
     return (
         <>
             <video
@@ -328,7 +365,11 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
             onTimeUpdate={handleTimeUpdate}
             style={{ width: '100%', maxWidth: '800px' }}
             />
+
+            <Button onClick={handleTestBtnClick}>Test 1</Button>
         </>
+
+
     )
 }
 
