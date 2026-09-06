@@ -7,10 +7,11 @@ import * as borsh from "borsh";
 
 import {Copy, Check} from "lucide-react"
 import * as React from "react";
-import Hls from 'hls.js';
 
-import {solanaClient, solanaClient as client} from "@/components/ui/provider";
-import {readUint32} from "hls.js/src/utils/mp4-tools";
+import {solanaClient} from "@/components/ui/provider";
+import {readSolanaVideoAccount, readSolanaVideoStorageAccount} from "@soltube/solana-video";
+import {VideoPlayer as VideoPlayerSolanaVideo} from "@soltube/solana-video/react";
+
 
 interface WatchVideoPageProps {
     // children: React.ReactNode; // ReactNode is the standard type for anything React can render
@@ -28,14 +29,31 @@ const videoAccountLayout = borsh.struct([
 
 export default function WatchVideoPage({address}: WatchVideoPageProps): JSX.Element {
 
+    // const loadVideoFromSolanaAccountAbortCtrl  = React.useRef<AbortController | null>(null);
+
+    const loadVideoFromSolanaAccount = (address :string) : [AbortController, Promise<any>]  => {
+        const [abortController, solanaAccountDataPromise] = readSolanaVideoAccount(solanaClient, address);
+        const [abortController1, solanaAccountDataPromise1] = readSolanaVideoStorageAccount(solanaClient, "HSxAfE6M8KW4wuB8tJJUzzJ4iKPttCG3mhafuycV8i9j");
+        solanaAccountDataPromise1.then((result: any) => {
+            console.log("hurray, storage!", result);
+        })
+        return [abortController, solanaAccountDataPromise];
+    }
+
     React.useEffect(() => {
 
         if(address !== undefined) {
-            console.log("x1", solanaClient.config.rpcClient)
-// @ts-ignore
-            const x = solanaClient.runtime.rpc.getAccountInfo(address, {encoding: "base64"}).send();
+            // console.log("x1", solanaClient.config.rpcClient)
 
-            console.log("x", x);
+            const [abortController, loadVideoDataFromSolAccountPromise] = loadVideoFromSolanaAccount(address);
+
+            loadVideoDataFromSolAccountPromise.then(() => {
+                console.log("hurray!");
+            })
+
+            return () => {
+                abortController.abort();
+            }
         }
 
     }, [address]);
@@ -51,7 +69,10 @@ export default function WatchVideoPage({address}: WatchVideoPageProps): JSX.Elem
 
 
             <Box>
-                <VideoPlayer2 src="http://localhost:3001/data/data/3ac9815c6568a5778f2db4746de591b9.mkv" moofIndexSrc="http://localhost:3001/data/data/3ac9815c6568a5778f2db4746de591b9.midx" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>
+                {/*<VideoPlayer2 src="http://localhost:3001/data/data/3ac9815c6568a5778f2db4746de591b9.mkv" moofIndexSrc="http://localhost:3001/data/data/3ac9815c6568a5778f2db4746de591b9.midx" />*/}
+
+                <VideoPlayerSolanaVideo solanaClient={solanaClient} solanaVideoAddress={address} src="http://localhost:3001/data/data/acfe98a41029bec232c05b6360583f49.mp4" moofIndexSrc="http://localhost:3001/data/data/acfe98a41029bec232c05b6360583f49.midx" />
+
                 {/*<VideoPlayer2 src="http://localhost:3001/data/data/acfe98a41029bec232c05b6360583f49.mp4" moofIndexSrc="http://localhost:3001/data/data/acfe98a41029bec232c05b6360583f49.midx" mimeCodec="avc1.64001E,mp4a.40.2" duration={147.5} fileSize={4323810}></VideoPlayer2>*/}
             </Box>
 
@@ -104,7 +125,7 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
         mediaSourceRef.current = mediaSource;
         videoElement.src = URL.createObjectURL(mediaSource);
 
-        console.log("w1",mediaSource.readyState);
+        // console.log("w1",mediaSource.readyState);
 
         const onSourceOpen = async () => {
              console.log('The mediaSource is open and ready to receive a sourceBuffer');
@@ -246,12 +267,6 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
             }
         }
 
-
-        //console.log("fetchNextSequentialChunk start,end bytes ranges", start, end);
-
-        //console.log("fetchNextSequentialChunk CP1");
-
-
         try {
             const use_bytes_header :boolean = ((start !== null) && (start !== undefined)) || (end !== null && end !== undefined);
             const endHttpHeaderStr = (end !== null && end !== undefined) ? `${end}` : "";
@@ -341,11 +356,7 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
                 }
             }
         }
-
-
-        // console.log("onTimeUpdate", videoRef.current?.currentTime);
     }
-
 
     const handleTestBtnClick = async() => {
         const result1 = await fetch('https://raw.githubusercontent.com/dnessonov/soltube/refs/heads/main/LICENSE');
@@ -372,75 +383,3 @@ export const VideoPlayer2: React.FC<VideoPlayerProps> = ({ src, moofIndexSrc, du
 
     )
 }
-
-
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
-    const videoRef = React.useRef<HTMLVideoElement | null>(null);
-    const hlsRef = React.useRef<Hls | null>(null);
-
-    React.useEffect(() => {
-        const videoElement = videoRef.current;
-        if (!videoElement) return;
-
-        // 1. Check if the file is a standard MP4
-        const isMp4 = src.toLowerCase().endsWith('.mp4');
-
-        if (isMp4) {
-            // Let the browser handle standard HTTP Range Requests natively
-            videoElement.src = src;
-        }else
-        // 1. Check if hls.js is supported by the browser
-        if (Hls.isSupported()) {
-            const hls = new Hls({
-                maxBufferLength: 30, // Tweak low-level buffer constraints here
-                enableWorker: true,
-            });
-
-            hlsRef.current = hls;
-            hls.loadSource(src);
-            hls.attachMedia(videoElement);
-
-            // Example: Intercepting binary fragment loading events
-            hls.on(Hls.Events.FRAG_LOADING, (_, data) => {
-                console.log('Fetching next binary segment:', data.frag.url);
-            });
-
-            hls.on(Hls.Events.ERROR, (_, data) => {
-                if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            hls.startLoad(); // Attempt recovery
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            });
-        }
-        // 2. Native Safari fallback (Safari handles HLS natively without hls.js)
-        else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-            videoElement.src = src;
-        }
-
-        // 3. Clean up memory and destroy the instance when the component unmounts
-        return () => {
-            if (hlsRef.current) {
-                hlsRef.current.destroy();
-                hlsRef.current = null;
-            }
-        };
-    }, [src]); // Re-run if the stream source URL changes
-
-    return (
-        <div className="video-container">
-            <video
-                ref={videoRef}
-                controls
-                style={{ width: '100%', maxWidth: '800px' }}
-            />
-        </div>
-    );
-};
